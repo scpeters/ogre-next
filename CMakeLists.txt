@@ -15,8 +15,10 @@
 ######################################################################
 
 cmake_minimum_required(VERSION 3.5.1)
-set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
-cmake_policy(SET CMP0003 NEW)
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(CMAKE_VS_PLATFORM_NAME STREQUAL "Tegra-Android")
 	set(CMAKE_LINK_LIBRARY_FLAG "")
@@ -37,11 +39,6 @@ if(WIN32)
 endif()
 
 if (APPLE AND NOT ANDROID)
-  if(CMAKE_VERSION VERSION_LESS 3.0.0)
-    include(CMakeForceCompiler)
-    CMAKE_FORCE_C_COMPILER(clang GNU)
-    CMAKE_FORCE_CXX_COMPILER(clang++ GNU)
-  endif()
   SET(CMAKE_SIZEOF_VOID_P 4)
   set(CMAKE_XCODE_ATTRIBUTE_GCC_VERSION "com.apple.compilers.llvm.clang.1_0")
   set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++11")
@@ -187,34 +184,11 @@ if (MINGW)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=cast-qual -Wno-unused-local-typedefs")
 endif ()
 
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN TRUE)
+set(OGRE_GCC_VISIBILITY_FLAGS "-DOGRE_GCC_VISIBILITY") # for legacy headers
+
 if ((CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_CLANGXX) AND NOT MINGW)
-  # Test for GCC visibility
-  include(CheckCXXCompilerFlag)
-  check_cxx_compiler_flag(-fvisibility=hidden OGRE_GCC_VISIBILITY)
-  if (OGRE_GCC_VISIBILITY)
-    # determine gcc version
-    execute_process(COMMAND ${CMAKE_CXX_COMPILER} -dumpversion
-      OUTPUT_VARIABLE OGRE_GCC_VERSION)
-    message(STATUS "Detected g++ ${OGRE_GCC_VERSION}")
-    message(STATUS "Enabling GCC visibility flags")
-    set(OGRE_GCC_VISIBILITY_FLAGS "-DOGRE_GCC_VISIBILITY -fvisibility=hidden")
-    set(XCODE_ATTRIBUTE_GCC_SYMBOLS_PRIVATE_EXTERN "YES")
-
-    # check if we can safely add -fvisibility-inlines-hidden
-    string(TOLOWER "${CMAKE_BUILD_TYPE}" OGRE_BUILD_TYPE)
-    if (OGRE_BUILD_TYPE STREQUAL "debug" AND OGRE_GCC_VERSION VERSION_LESS "4.2")
-      message(STATUS "Skipping -fvisibility-inlines-hidden due to possible bug in g++ < 4.2")
-    else ()
-      if (APPLE AND NOT OGRE_BUILD_PLATFORM_APPLE_IOS)
-        message(STATUS "Skipping -fvisibility-inlines-hidden due to linker issues")
-        set(XCODE_ATTRIBUTE_GCC_INLINES_ARE_PRIVATE_EXTERN[arch=x86_64] "YES")
-      else()
-        set(OGRE_GCC_VISIBILITY_FLAGS "${OGRE_GCC_VISIBILITY_FLAGS} -fvisibility-inlines-hidden")
-        set(XCODE_ATTRIBUTE_GCC_INLINES_ARE_PRIVATE_EXTERN "YES")
-      endif()
-    endif ()
-  endif (OGRE_GCC_VISIBILITY)
-
   # Fix x64 issues on Linux
   if(OGRE_PLATFORM_X64 AND NOT APPLE)
     add_definitions(-fPIC)
